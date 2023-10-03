@@ -40,21 +40,33 @@ for FILE in $AWS_FILES; do
       ((downloaded_files++))
     fi
 
-    # Check if 5 files have been downloaded
-    if ((downloaded_files % 5 == 0)); then
-      echo "Batch downloaded. Files in temp directory:"
-      ls "$TEMP_DIRECTORY"
-      
+    # Check if 3 files have been downloaded
+    if ((downloaded_files % 3 == 0)); then
+      # Perform your desired action on the batch of files here
+      echo "Batch downloaded. Performing action on files:"
+      for BATCH_FILE in "$TEMP_DIRECTORY"/*.fastq.gz; do
+        # Perform action on each file in the batch
+        echo "Performing action on file: $BATCH_FILE"
+        # Your action code here
+      done
+
       # Remove downloaded files
       rm "$TEMP_DIRECTORY"/*.fastq.gz
     fi
   fi
 done
 
-# Print any remaining files in the temp directory
-if ((downloaded_files % 5 != 0)); then
-  echo "Batch downloaded. Files in temp directory:"
-  ls "$TEMP_DIRECTORY"
+# Perform the action on any remaining files in the temp directory
+if ((downloaded_files % 3 != 0)); then
+  echo "Batch downloaded. Performing action on files:"
+  for BATCH_FILE in "$TEMP_DIRECTORY"/*.fastq.gz; do
+    # Perform action on each file in the batch
+    echo "Performing action on file: $BATCH_FILE"
+    # Your action code here
+  done
+
+  # Remove downloaded files
+  rm "$TEMP_DIRECTORY"/*.fastq.gz
 fi
 
 wait
