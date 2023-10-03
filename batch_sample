@@ -1,6 +1,6 @@
 #!/bin/bash
 
-AWS_BUCKET_NAME="almv-rct01400-msh-uploads/FASTQ/"
+AWS_BUCKET_NAME="almv-amt202-uploads/AMT202/"
 TEMP_DIRECTORY="./temp"
 OUTPUT_DIRECTORY="./Sampled"
 AWS_FILES=$(aws s3 ls s3://$AWS_BUCKET_NAME | awk '{print $4}')
@@ -41,15 +41,24 @@ for FILE in $AWS_FILES; do
     fi
 
     # Check if 3 files have been downloaded
-    if ((downloaded_files % 3 == 0)); then
-      # Perform the action on the batch of files in parallel using seqtk
+if ((downloaded_files % 3 != 0)); then
+  # Wait for all files in the batch to be downloaded
+  echo "Waiting for batch to download..."
+  wait
+
       echo "Batch downloaded. Performing action on files in parallel:"
       for BATCH_FILE in "$TEMP_DIRECTORY"/*.fastq.gz; do
-        (seqtk -s100 "$BATCH_FILE" 1000 > "$OUTPUT_DIRECTORY/$(basename "$BATCH_FILE" .fastq.gz).sampled.fastq.gz" &)  # Run seqtk command in the background
+        (seqtk sample -s100 "$BATCH_FILE" 1000 > "$OUTPUT_DIRECTORY/$(basename "$BATCH_FILE" .fastq.gz).sampled.fastq.gz" &)  # Run seqtk command in the background
       done
       
       # Wait for all background processes to finish
       wait
+      
+      # Show the size of the sampled files by line count
+      echo "Size of sampled files:"
+      for SAMPLED_FILE in "$OUTPUT_DIRECTORY"/*.sampled.fastq.gz; do
+        echo "$SAMPLED_FILE: $(gzip -cd "$SAMPLED_FILE" | wc -l) lines"
+      done
       
       # Remove downloaded files
       rm "$TEMP_DIRECTORY"/*.fastq.gz
@@ -59,13 +68,22 @@ done
 
 # Perform the action on any remaining files in the temp directory
 if ((downloaded_files % 3 != 0)); then
-  echo "Batch downloaded. Performing action on files in parallel:"
+  # Wait for all files in the batch to be downloaded
+  echo "Waiting for batch to download..."
+  wait
+    echo "Batch downloaded. Performing action on files in parallel:"
   for BATCH_FILE in "$TEMP_DIRECTORY"/*.fastq.gz; do
-    (seqtk -s100 "$BATCH_FILE" 1000 > "$OUTPUT_DIRECTORY/$(basename "$BATCH_FILE" .fastq.gz).sampled.fastq.gz" &)  # Run seqtk command in the background
+    (seqtk sampe -s100 "$BATCH_FILE" 1000 > "$OUTPUT_DIRECTORY/$(basename "$BATCH_FILE" .fastq.gz).sampled.fastq.gz" &)  # Run seqtk command in the background
   done
 
   # Wait for all background processes to finish
   wait
+
+  # Show the size of the sampled files by line count
+  echo "Size of sampled files:"
+  for SAMPLED_FILE in "$OUTPUT_DIRECTORY"/*.sampled.fastq.gz; do
+    echo "$SAMPLED_FILE: $(gzip -cd "$SAMPLED_FILE" | wc -l) lines"
+  done
 
   # Remove downloaded files
   rm "$TEMP_DIRECTORY"/*.fastq.gz
