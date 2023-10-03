@@ -1,8 +1,8 @@
 #!/bin/bash
-NUM=1000
-AWS_BUCKET_NAME="almv-amt202-uploads/AMT202/"
-TEMP_DIRECTORY="./temp2"
-OUTPUT_DIRECTORY="./Sampled2"
+NUM=20000000
+AWS_BUCKET_NAME="almv-rct01400-msh-uploads/FASTQ/"
+TEMP_DIRECTORY="./temp"
+OUTPUT_DIRECTORY="./Sampled_msh"
 AWS_FILES=$(aws s3 ls s3://$AWS_BUCKET_NAME | awk '{print $4}')
 
 # Create temp directory if it does not exist
@@ -39,7 +39,7 @@ for FILE in $AWS_FILES; do
 
       # Perform the action on the downloaded file using seqtk
       echo "Performing action on file $FILE..."
-      seqtk sample "$TEMP_DIRECTORY/$FILE" $NUM | seqtk seq -A > "$OUTPUT_DIRECTORY/$BASENAME.sampled.fastq.gz"
+      seqtk sample -s100 "$TEMP_DIRECTORY/$FILE" $NUM > "$OUTPUT_DIRECTORY/$BASENAME.sampled.fastq.gz"
       echo "Action completed on file $FILE."
 
       # Remove the downloaded file
