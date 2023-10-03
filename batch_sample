@@ -42,14 +42,15 @@ for FILE in $AWS_FILES; do
 
     # Check if 3 files have been downloaded
     if ((downloaded_files % 3 == 0)); then
-      # Perform your desired action on the batch of files here
-      echo "Batch downloaded. Performing action on files:"
+      # Perform the action on the batch of files in parallel using seqtk
+      echo "Batch downloaded. Performing action on files in parallel:"
       for BATCH_FILE in "$TEMP_DIRECTORY"/*.fastq.gz; do
-        # Perform action on each file in the batch
-        echo "Performing action on file: $BATCH_FILE"
-        # Your action code here
+        (seqtk -s100 "$BATCH_FILE" 1000 > "$OUTPUT_DIRECTORY/$(basename "$BATCH_FILE" .fastq.gz).sampled.fastq.gz" &)  # Run seqtk command in the background
       done
-
+      
+      # Wait for all background processes to finish
+      wait
+      
       # Remove downloaded files
       rm "$TEMP_DIRECTORY"/*.fastq.gz
     fi
@@ -58,12 +59,13 @@ done
 
 # Perform the action on any remaining files in the temp directory
 if ((downloaded_files % 3 != 0)); then
-  echo "Batch downloaded. Performing action on files:"
+  echo "Batch downloaded. Performing action on files in parallel:"
   for BATCH_FILE in "$TEMP_DIRECTORY"/*.fastq.gz; do
-    # Perform action on each file in the batch
-    echo "Performing action on file: $BATCH_FILE"
-    # Your action code here
+    (seqtk -s100 "$BATCH_FILE" 1000 > "$OUTPUT_DIRECTORY/$(basename "$BATCH_FILE" .fastq.gz).sampled.fastq.gz" &)  # Run seqtk command in the background
   done
+
+  # Wait for all background processes to finish
+  wait
 
   # Remove downloaded files
   rm "$TEMP_DIRECTORY"/*.fastq.gz
