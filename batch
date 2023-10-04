@@ -1,8 +1,8 @@
 #!/bin/bash
 NUM=20000000
-AWS_BUCKET_NAME="almv-rct01400-msh-uploads/FASTQ/"
+AWS_BUCKET_NAME="almv-rct01400-uploads/RCT01400/221007_A00953_0634_BHJGW5DSX5/"
 TEMP_DIRECTORY="./temp"
-OUTPUT_DIRECTORY="./Sampled_msh"
+OUTPUT_DIRECTORY="./Sampled_ucsd"
 AWS_FILES=$(aws s3 ls s3://$AWS_BUCKET_NAME | awk '{print $4}')
 
 # Create temp directory if it does not exist
