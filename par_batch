@@ -1,0 +1,55 @@
+#!/bin/bash
+NUM=1000
+AWS_BUCKET_NAME="almv-amt202-uploads/AMT202/"
+TEMP_DIRECTORY="./temp"
+OUTPUT_DIRECTORY="./Sampled"
+AWS_FILES=$(aws s3 ls s3://$AWS_BUCKET_NAME | awk '{print $4}')
+
+# Create temp directory if it does not exist
+if [[ ! -d "$TEMP_DIRECTORY" ]]; then
+  mkdir "$TEMP_DIRECTORY"
+fi
+
+# Create output directory if it does not exist
+if [[ ! -d "$OUTPUT_DIRECTORY" ]]; then
+  mkdir "$OUTPUT_DIRECTORY"
+fi
+
+# Function to process a single file
+process_file() {
+  FILE="$1"
+  FULL_PATH="$AWS_BUCKET_NAME$FILE"
+  BASENAME=$(basename "$FILE" .fastq.gz)
+  OUTPUT_FILE="$OUTPUT_DIRECTORY/$BASENAME.sampled.fastq.gz"
+
+  # Check if file has already been processed
+  if [[ -f "$OUTPUT_FILE" ]]; then
+    echo "Output file $OUTPUT_FILE already exists. Skipping file $FILE."
+    return
+  fi
+
+  # Check if file has already been downloaded
+  TARGET_FILE="$TEMP_DIRECTORY/$FILE"
+  if [[ -f "$TARGET_FILE" ]]; then
+    echo "File $FILE already exists in the temporary directory. Skipping download."
+  else
+    echo "Downloading file $FILE..."
+    aws s3 cp "s3://$FULL_PATH" "$TEMP_DIRECTORY/$FILE"
+    echo "File $FILE downloaded."
+  fi
+
+  # Perform the action on the downloaded file using seqtk
+  echo "Performing action on file $FILE..."
+  seqtk sample -s100 "$TEMP_DIRECTORY/$FILE" $NUM > "$OUTPUT_DIRECTORY/$BASENAME.sampled.fastq.gz"
+  echo "Action completed on file $FILE."
+
+  # Remove the downloaded file
+  echo "Removing downloaded file $FILE..."
+  rm "$TEMP_DIRECTORY/$FILE"
+  echo "Downloaded file $FILE removed."
+}
+
+export -f process_file
+
+# Loop through the files and process them in parallel
+echo "$AWS_FILES" | xargs -I {} -P 4 -n 1 bash -c "process_file {}"

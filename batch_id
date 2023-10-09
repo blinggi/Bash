@@ -1,0 +1,52 @@
+#!/bin/bash
+NUM=20000000
+#AWS_BUCKET_NAME="almv-rct01400-uploads/RCT01400/221007_A00953_0634_BHJGW5DSX5/"
+AWS_BUCKET_NAME="rct-rna-seq-pipe/bryan/RCT1400-BIGSIG/FASTQ-files/IDIBAPS/"
+TEMP_DIRECTORY="./temp"
+OUTPUT_DIRECTORY="./Sampled_idib"
+AWS_FILES=$(aws s3 ls s3://$AWS_BUCKET_NAME --profile user1| awk '{print $4}')
+
+# Create temp directory if it does not exist
+if [[ ! -d "$TEMP_DIRECTORY" ]]; then
+  mkdir "$TEMP_DIRECTORY"
+fi
+
+# Create output directory if it does not exist
+if [[ ! -d "$OUTPUT_DIRECTORY" ]]; then
+  mkdir "$OUTPUT_DIRECTORY"
+fi
+
+# Loop through the files
+for FILE in $AWS_FILES; do
+  if [[ $FILE == *.fastq.gz ]]; then
+    FULL_PATH="$AWS_BUCKET_NAME$FILE"
+
+    # Check if file has already been processed
+    BASENAME=$(basename "$FILE" .fastq.gz)
+    OUTPUT_FILE="$OUTPUT_DIRECTORY/$BASENAME.sampled.fastq.gz"
+    if [[ -f "$OUTPUT_FILE" ]]; then
+      echo "Output file $OUTPUT_FILE already exists. Skipping to the next file."
+      continue
+    fi
+
+    # Check if file has already been downloaded
+    TARGET_FILE="$TEMP_DIRECTORY/$FILE"
+    if [[ -f "$TARGET_FILE" ]]; then
+      echo "File $FILE already exists in the temporary directory. Skipping download."
+    else
+      echo "Downloading file $FILE..."
+      aws s3 cp "s3://$FULL_PATH" "$TEMP_DIRECTORY/$FILE"
+      echo "File $FILE downloaded."
+
+      # Perform the action on the downloaded file using seqtk
+      echo "Performing action on file $FILE..."
+      seqtk sample -s100 "$TEMP_DIRECTORY/$FILE" $NUM > "$OUTPUT_DIRECTORY/$BASENAME.sampled.fastq.gz"
+      echo "Action completed on file $FILE."
+
+      # Remove the downloaded file
+      echo "Removing downloaded file $FILE..."
+      rm "$TEMP_DIRECTORY/$FILE"
+      echo "Downloaded file $FILE removed."
+    fi
+  fi
+done
